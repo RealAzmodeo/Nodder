@@ -1,0 +1,447 @@
+
+# Logical Construction Plan - Node Glossary
+
+This glossary details the various types of nodes available in the Logical Construction Plan application, their purpose, input/output ports, and specific functionalities.
+
+## General Node Information
+Nodes are the fundamental building blocks of your logical plans. Each node performs a specific operation, provides data, or controls the flow of execution. They have input ports (on the left) to receive data or execution signals, and output ports (on theright) to send them. Node-specific behaviors are detailed within the Inspector Panel or via the Node Configuration Modal when a node is selected. The visual appearance of nodes follows the "Coherent Light Principle," presenting them as crystal-like cards floating on an ambiently lit canvas.
+
+---
+
+## Panels & UI Elements
+
+### **Command Agent Panel**
+*   **Description:** An interactive panel allowing users to describe a desired logical structure or modification in natural language. The AI Agent (powered by Gemini API) attempts to translate this command into a structured plan of nodes and connections.
+*   **Functionality:**
+    *   **Command Input:** A text field for users to type their instructions.
+    *   **Send Command Button:** Submits the command to the AI Agent for processing.
+    *   **Plan Review:** If the AI generates a plan, a summary is displayed within this panel.
+    *   **Commit Plan Button:** Applies the AI-generated nodes and connections to the current graph.
+    *   **Discard Plan Button:** Rejects the AI-generated plan.
+*   **Location:** Positioned at the bottom of the main editor area, below the Node Editor.
+*   **Purpose:** To accelerate graph creation and allow for a more intuitive, conversational approach to building logical plans. Agent actions and plans are logged in the Execution Log.
+
+### **Controls Panel (Left Panel)**
+*   **Description:** A **collapsible panel** on the left side of the application. Its primary function is adding new nodes (Atomic or Component Blueprints) to the currently active graph scope. It also houses "History" (Undo/Redo) and "Clipboard" (Copy/Paste) controls. "Debugger Controls" ("Resume", "Step Over", "Stop") are also located here and become active when execution is paused at a breakpoint.
+*   **Sections & Tabs:**
+    *   **Quick Shelf:** For frequently used nodes.
+    *   **Tabs:** "Atomic Nodes" and "Component Library" for browsing and adding different types of nodes.
+    *   **History & Clipboard:** Sections for graph state management.
+    *   **Debugger:** Controls for debugging execution.
+*   **Collapsing:** Can be minimized to a thin vertical bar by clicking the "Collapse" button at its bottom, maximizing canvas space. Click the "Expand" button on the collapsed bar to reopen it.
+
+### **Inspector Panel (Right Panel)**
+*   **Description:** A **collapsible panel** on the right side of the application. Its content is contextual:
+    *   **When a node is selected:** It displays and allows editing of properties for that specific node, including its Name, node-specific configuration fields, input port literal overrides, and a footer note editor.
+    *   **When no node is selected:** It displays global "Graph Actions" (e.g., Execute Selected Output, Clear Graph, Focus Graph, Align Top, Distribute Horizontally), "Canvas Tools" (e.g., Sequence Mode, Focus Mode toggles), and "Persistence" options (Save Graph, Load Graph).
+*   **Log View:** The "Execution Log" is always displayed at the bottom of this panel, whether a node is selected or not.
+*   **Collapsing:** Can be minimized to a thin vertical bar by clicking the "Collapse" button at its bottom. Click the "Expand" button on the collapsed bar to reopen it.
+
+### **Log View**
+*   **Description:** Shows a chronological log of execution events, data resolutions, errors, and agent activities.
+*   **Location:** Integrated at the bottom of the right-hand Inspector Panel.
+
+### **Breadcrumbs**
+*   **Description:** Displays the current graph scope hierarchy (e.g., "Root Graph > My Molecule") and allows navigation between scopes. Located at the top of the left Controls Panel.
+
+### **Node Context Menu**
+*   **Description:** Appears when right-clicking an output port while dragging a connection. Suggests compatible nodes to add and connect.
+
+### **Node Configuration Modal**
+*   **Description:** A modal dialog for editing more complex configurations for certain node types (e.g., Value Provider's value, State node's ID, Switch node's cases).
+
+### **Clear Graph Confirmation Modal**
+*   **Description:** A modal dialog that appears when attempting to clear the current graph, providing options to save before clearing, clear anyway, or cancel.
+
+---
+
+## Atomic Nodes
+
+### **Value Provider**
+*   **Description:** Outputs a constant, user-defined value. The data type is inferred from the entered value. Use the 'Provided Value' field in the Inspector or Node Config Modal to set its output.
+*   **Input Ports:** None
+*   **Output Ports:**
+    *   `Value` (ANY, DATA): The configured constant value.
+*   **Configuration (Modal/Inspector):** `value` (any type).
+
+### **Addition**
+*   **Description:** Accepts two numerical inputs ('Number 1', 'Number 2') and outputs their sum. Literal overrides can be set for unconnected inputs.
+*   **Input Ports:**
+    *   `Number 1` (NUMBER, DATA): First number to add.
+    *   `Number 2` (NUMBER, DATA): Second number to add.
+*   **Output Ports:**
+    *   `Sum` (NUMBER, DATA): The sum of Number 1 and Number 2.
+
+### **Concatenate**
+*   **Description:** Joins two string inputs ('String 1', 'String 2') into a single output string. Inputs will be treated as strings. Literal overrides can be set.
+*   **Input Ports:**
+    *   `String 1` (STRING, DATA): First string.
+    *   `String 2` (STRING, DATA): Second string.
+*   **Output Ports:**
+    *   `Result` (STRING, DATA): The concatenated string.
+
+### **Assign (Passthrough)**
+*   **Description:** Passes the value from its 'Input' port directly to its 'Output' port without modification. Accepts any data type.
+*   **Input Ports:**
+    *   `Input` (ANY, DATA): Any input value.
+*   **Output Ports:**
+    *   `Output` (ANY, DATA): The passed-through input value.
+
+### **Union (Array)**
+*   **Description:** Collects all values from its connected input ports into a single array output 'Collection'. Input ports are dynamic; connecting the last "Item N" port will add a new "Item N+1" port.
+*   **Input Ports (Dynamic):**
+    *   `Item N` (ANY, DATA): Item to include in the union.
+*   **Output Ports:**
+    *   `Collection` (ARRAY, DATA): The collection of all input items.
+
+### **To String**
+*   **Description:** Converts any input value from its 'Input' port into a string representation on its 'Output' port.
+*   **Input Ports:**
+    *   `Input` (ANY, DATA): Any value to convert to a string.
+*   **Output Ports:**
+    *   `Output` (STRING, DATA): The string representation of the input.
+
+### **AND (Logical AND)**
+*   **Description:** Performs a logical AND operation on dynamic boolean inputs ('Input 1', 'Input 2', ...). Outputs a boolean 'Result'. True if all inputs are true. Unconnected inputs are treated as false unless overridden. If no inputs are connected, result is true.
+*   **Input Ports (Dynamic):**
+    *   `Input N` (BOOLEAN, DATA): Boolean input. Connecting the last available port adds a new one.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): The logical AND of all inputs.
+
+### **OR (Logical OR)**
+*   **Description:** Performs a logical OR operation on dynamic boolean inputs ('Input 1', 'Input 2', ...). Outputs a boolean 'Result'. True if any input is true. Unconnected inputs are treated as false unless overridden. If no inputs are connected, result is false.
+*   **Input Ports (Dynamic):**
+    *   `Input N` (BOOLEAN, DATA): Boolean input. Connecting the last available port adds a new one.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): The logical OR of all inputs.
+
+### **XOR (Logical XOR)**
+*   **Description:** Performs a logical XOR operation on dynamic boolean inputs ('Input 1', 'Input 2', ...). Outputs a boolean 'Result'. True if an odd number of inputs are true. Unconnected inputs are treated as false unless overridden. If no inputs are connected, result is false.
+*   **Input Ports (Dynamic):**
+    *   `Input N` (BOOLEAN, DATA): Boolean input. Connecting the last available port adds a new one.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): The logical XOR of all inputs.
+
+### **Equals**
+*   **Description:** Compares 'Value 1' and 'Value 2' for equality. Outputs a boolean 'Result'. Handles primitives strictly; objects/arrays by deep comparison (JSON stringify).
+*   **Input Ports:**
+    *   `Value 1` (ANY, DATA): First value to compare.
+    *   `Value 2` (ANY, DATA): Second value to compare.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): True if Value 1 equals Value 2, false otherwise.
+
+### **Greater Than**
+*   **Description:** Checks if 'Operand A' (NUMBER) is strictly greater than 'Operand B' (NUMBER). Outputs a boolean 'Result'.
+*   **Input Ports:**
+    *   `Operand A` (NUMBER, DATA): The first number.
+    *   `Operand B` (NUMBER, DATA): The second number.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): True if Operand A > Operand B, false otherwise.
+
+### **Less Than**
+*   **Description:** Checks if 'Operand A' (NUMBER) is strictly less than 'Operand B' (NUMBER). Outputs a boolean 'Result'.
+*   **Input Ports:**
+    *   `Operand A` (NUMBER, DATA): The first number.
+    *   `Operand B` (NUMBER, DATA): The second number.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): True if Operand A < Operand B, false otherwise.
+
+### **Is Empty**
+*   **Description:** Checks if the 'Target' input (String, Array, or Object) is empty. Outputs a boolean 'Is Empty'. Null or undefined inputs are considered empty.
+*   **Input Ports:**
+    *   `Target` (ANY, DATA): String, Array, or Object to check.
+*   **Output Ports:**
+    *   `Is Empty` (BOOLEAN, DATA): True if the target is empty, false otherwise.
+
+### **Not**
+*   **Description:** Takes a boolean 'Input' and outputs its logical negation as 'Result' (BOOLEAN). Undefined input is treated as false, resulting in true output.
+*   **Input Ports:**
+    *   `Input` (BOOLEAN, DATA): The boolean value to negate.
+*   **Output Ports:**
+    *   `Result` (BOOLEAN, DATA): The logical negation of the input.
+
+### **Branch (If)**
+*   **Description:** Conditionally routes 'Input Value' (ANY) to either 'If True (Data)' or 'If False (Data)' based on a boolean 'Condition' input. The inactive data branch produces no value. Execution flow is pulsed on the 'Execute' input port, and then either 'If True (Exec)' or 'If False (Exec)' is pulsed.
+*   **Input Ports:**
+    *   `Execute` (VOID, EXECUTION): Execution pulse to evaluate the branch.
+    *   `Condition` (BOOLEAN, DATA): Boolean condition to evaluate.
+    *   `Input Value` (ANY, DATA): Value to pass to the active data branch.
+*   **Output Ports:**
+    *   `If True (Exec)` (VOID, EXECUTION): Execution pulse if Condition is true.
+    *   `If False (Exec)` (VOID, EXECUTION): Execution pulse if Condition is false.
+    *   `If True (Data)` (ANY, DATA): Outputs Input Value if Condition is true.
+    *   `If False (Data)` (ANY, DATA): Outputs Input Value if Condition is false.
+
+### **On Event**
+*   **Description:** Listens for a named external event (configured via 'Event Name'). When the event occurs, it pulses its 'Triggered' (EXECUTION) output port and provides any accompanying data on its 'Payload' (DATA) output port. This node typically starts an execution flow.
+*   **Configuration (Modal/Inspector):** `eventName` (string).
+*   **Input Ports:** None
+*   **Output Ports:**
+    *   `Triggered` (VOID, EXECUTION): Execution pulse when the event occurs.
+    *   `Payload` (ANY, DATA): Data payload accompanying the event.
+
+### **State (Variable)**
+*   **Description:** Maintains a persistent value identified by a 'State ID'. This value survives across graph executions. Multiple STATE nodes with the same 'State ID' share the same memory. Pulse 'Execute Action' (EXECUTION) port. 'Set Value' input updates the state. 'Reset to Initial' input reverts it to 'Initial Value'. 'Current Value' output provides the state's value. 'Action Executed' (EXECUTION) port pulses after completion.
+*   **Configuration (Modal/Inspector):** `stateId` (string), `initialValue` (any type).
+*   **Input Ports:**
+    *   `Execute Action` (VOID, EXECUTION): Execution pulse to perform state action (set/reset).
+    *   `Set Value` (ANY, DATA): Sets the persistent state to this value when executed. Optional.
+    *   `Reset to Initial` (BOOLEAN, DATA): If true and executed, resets the state to its configured initial value. Optional.
+*   **Output Ports:**
+    *   `Action Executed` (VOID, EXECUTION): Execution pulse after state action is complete.
+    *   `Current Value` (ANY, DATA): Outputs the current persistent value of this state.
+
+### **Random Number**
+*   **Description:** Generates a pseudo-random number. Inputs 'Min' (default from config or 0) and 'Max' (default from config or 1) define the inclusive lower and exclusive upper bounds. Outputs 'Result'. If Min >= Max, an error occurs.
+*   **Configuration (Modal/Inspector):** `defaultMin` (number, default 0), `defaultMax` (number, default 1).
+*   **Input Ports:**
+    *   `Min` (NUMBER, DATA): The inclusive lower bound.
+    *   `Max` (NUMBER, DATA): The exclusive upper bound.
+*   **Output Ports:**
+    *   `Result` (NUMBER, DATA): A pseudo-random number in [Min, Max).
+
+### **Round**
+*   **Description:** Rounds the input 'Value' (NUMBER) to the nearest integer. Outputs 'Result' (NUMBER).
+*   **Input Ports:**
+    *   `Value` (NUMBER, DATA): The number to round.
+*   **Output Ports:**
+    *   `Result` (NUMBER, DATA): The value rounded to the nearest integer.
+
+### **Floor**
+*   **Description:** Returns the largest integer less than or equal to the input 'Value' (NUMBER) (rounds down). Outputs 'Result' (NUMBER).
+*   **Input Ports:**
+    *   `Value` (NUMBER, DATA): The number to floor.
+*   **Output Ports:**
+    *   `Result` (NUMBER, DATA): The largest integer less than or equal to the value.
+
+### **Ceil**
+*   **Description:** Returns the smallest integer greater than or equal to the input 'Value' (NUMBER) (rounds up). Outputs 'Result' (NUMBER).
+*   **Input Ports:**
+    *   `Value` (NUMBER, DATA): The number to ceil.
+*   **Output Ports:**
+    *   `Result` (NUMBER, DATA): The smallest integer greater than or equal to the value.
+
+### **Subtract**
+*   **Description:** Subtracts 'Subtrahend' (NUMBER) from 'Minuend' (NUMBER). Outputs 'Difference' (NUMBER).
+*   **Input Ports:**
+    *   `Minuend` (NUMBER, DATA): The number to subtract from.
+    *   `Subtrahend` (NUMBER, DATA): The number to subtract.
+*   **Output Ports:**
+    *   `Difference` (NUMBER, DATA): The result of Minuend - Subtrahend.
+
+### **Multiply**
+*   **Description:** Multiplies 'Operand A' (NUMBER) by 'Operand B' (NUMBER). Outputs 'Product' (NUMBER).
+*   **Input Ports:**
+    *   `Operand A` (NUMBER, DATA): First number to multiply.
+    *   `Operand B` (NUMBER, DATA): Second number to multiply.
+*   **Output Ports:**
+    *   `Product` (NUMBER, DATA): The product of Operand A and Operand B.
+
+### **Divide**
+*   **Description:** Divides 'Dividend' (NUMBER) by 'Divisor' (NUMBER). Outputs 'Quotient' (NUMBER). If Divisor is 0, outputs Infinity and logs a warning.
+*   **Input Ports:**
+    *   `Dividend` (NUMBER, DATA): The number to be divided.
+    *   `Divisor` (NUMBER, DATA): The number to divide by.
+*   **Output Ports:**
+    *   `Quotient` (NUMBER, DATA): The result of Dividend / Divisor.
+
+### **Modulo**
+*   **Description:** Calculates the remainder of 'Dividend' (NUMBER) divided by 'Divisor' (NUMBER). Outputs 'Remainder' (NUMBER). If Divisor is 0, outputs NaN and logs a warning.
+*   **Input Ports:**
+    *   `Dividend` (NUMBER, DATA): The number to be divided.
+    *   `Divisor` (NUMBER, DATA): The number to divide by for remainder.
+*   **Output Ports:**
+    *   `Remainder` (NUMBER, DATA): The remainder of Dividend % Divisor.
+
+### **Get Item at Index**
+*   **Description:** Extracts an item from an array (Collection) by its zero-based position (Index). Outputs 'Item' (ANY), or undefined if the index is out of bounds or input is not an array.
+*   **Input Ports:**
+    *   `Collection` (ARRAY, DATA): The array to get an item from.
+    *   `Index` (NUMBER, DATA): The zero-based index of the item.
+*   **Output Ports:**
+    *   `Item` (ANY, DATA): The item at the specified index.
+
+### **Collection Length**
+*   **Description:** Returns the number of items in an input array (Collection) as 'Length' (NUMBER). Outputs 0 if input is not a valid array.
+*   **Input Ports:**
+    *   `Collection` (ARRAY, DATA): The array to measure.
+*   **Output Ports:**
+    *   `Length` (NUMBER, DATA): The number of items in the collection.
+
+### **Get Property**
+*   **Description:** Extracts the value of a property (Key - STRING) from an object (Source - OBJECT). Outputs 'Value' (ANY), or undefined if the key is not found or source is not an object.
+*   **Input Ports:**
+    *   `Source` (OBJECT, DATA): The object to get a property from.
+    *   `Key` (STRING, DATA): The name of the property to retrieve.
+*   **Output Ports:**
+    *   `Value` (ANY, DATA): The value of the property.
+
+### **Set Property**
+*   **Description:** Creates a new object by adding or updating a property (Key - STRING) with a given (Value - ANY) on a copy of the input object (Source - OBJECT). Outputs 'Result' (OBJECT). This is an immutable operation.
+*   **Input Ports:**
+    *   `Source` (OBJECT, DATA): The original object.
+    *   `Key` (STRING, DATA): The name of the property to set.
+    *   `Value` (ANY, DATA): The value to set for the property.
+*   **Output Ports:**
+    *   `Result` (OBJECT, DATA): A new object with the property set or updated.
+
+### **String Length**
+*   **Description:** Returns the number of characters in an input string (Source - STRING) as 'Length' (NUMBER).
+*   **Input Ports:**
+    *   `Source` (STRING, DATA): The string to measure.
+*   **Output Ports:**
+    *   `Length` (NUMBER, DATA): The number of characters in the string.
+
+### **Split String**
+*   **Description:** Divides a string (Source - STRING) into an array of substrings ('Result' - ARRAY of STRINGs) based on a specified (Delimiter - STRING). Default delimiter can be set in config.
+*   **Configuration (Inspector/Modal):** `splitDelimiter` (string, default ',').
+*   **Input Ports:**
+    *   `Source` (STRING, DATA): The string to split.
+    *   `Delimiter` (STRING, DATA): The character or string to split by.
+*   **Output Ports:**
+    *   `Result` (ARRAY, DATA): An array of strings, split by the delimiter.
+
+### **Switch**
+*   **Description:** Compares an input 'Value' (ANY) against multiple configured 'Cases'. Outputs the 'Result' (ANY) of the first matching case. If no cases match, outputs the configured 'Default Value'. Cases are configured in the Inspector or Node Configuration modal.
+*   **Configuration (Modal/Inspector):** `switchCases` (array of {id: string, caseValue: any, outputValue: any}), `switchDefaultValue` (any).
+*   **Input Ports:**
+    *   `Value` (ANY, DATA): The value to switch on.
+*   **Output Ports:**
+    *   `Result` (ANY, DATA): The output value based on the matching case or default.
+
+### **Log Value**
+*   **Description:** Logs the 'Input' (ANY) value to the Execution Log when its 'Execute' (EXECUTION) port is pulsed, or during data resolution if connected. Passes the 'Input' value to 'Output' (ANY) unchanged. 'Executed' (EXECUTION) pulses after logging if triggered by execution.
+*   **Input Ports:**
+    *   `Execute` (VOID, EXECUTION): Optional execution pulse to trigger logging.
+    *   `Input` (ANY, DATA): Value to log. (Optional if only exec triggered).
+*   **Output Ports:**
+    *   `Executed` (VOID, EXECUTION): Optional execution pulse after logging.
+    *   `Output` (ANY, DATA): Passes through the input value.
+
+### **Construct Object**
+*   **Description:** Constructs an 'Object' (OBJECT) from dynamic Key-Value input pairs. Input 'Key N' must be STRING. 'Value N' can be ANY. Connecting a 'Value N' port adds new 'Key N+1' and 'Value N+1' ports.
+*   **Input Ports (Dynamic):**
+    *   `Key N` (STRING, DATA): Key for the Nth property.
+    *   `Value N` (ANY, DATA): Value for the Nth property.
+*   **Output Ports:**
+    *   `Object` (OBJECT, DATA): The constructed object.
+
+### **Comment**
+*   **Description:** A non-executable node for adding text annotations to the graph. Its content and dimensions can be edited in the Node Configuration modal or Inspector Panel.
+*   **Configuration (Modal/Inspector):** `commentText` (string), `frameWidth` (number), `frameHeight` (number).
+*   **Input Ports:** None
+*   **Output Ports:** None
+
+### **Frame**
+*   **Description:** A visual container to group related nodes. Its title and dimensions can be edited in the Node Configuration modal or Inspector Panel. It does not affect execution.
+*   **Configuration (Modal/Inspector):** `frameTitle` (string), `frameWidth` (number), `frameHeight` (number).
+*   **Input Ports:** None
+*   **Output Ports:** None
+
+### **Send Data (Channel)**
+*   **Description:** Sends the input 'Data In' to a named channel when its `Execute` port is pulsed. All `RECEIVE_DATA` nodes listening to the same channel will get this data. Configure 'Channel Name' in the Node Configuration Modal or Inspector Panel.
+*   **Configuration (Modal/Inspector):** `channelName` (string).
+*   **Input Ports:**
+    *   `Execute` (VOID, EXECUTION): Pulse to send data to the channel.
+    *   `Data In` (ANY, DATA): The data to send to the channel.
+*   **Output Ports:**
+    *   `Executed` (VOID, EXECUTION): Pulses after data is sent.
+
+### **Receive Data (Channel)**
+*   **Description:** Receives data from a named channel. Outputs the last value sent by a `SEND_DATA` node on the same channel as 'Data Out'. Configure 'Channel Name' in the Node Configuration Modal or Inspector Panel.
+*   **Configuration (Modal/Inspector):** `channelName` (string).
+*   **Input Ports:** None
+*   **Output Ports:**
+    *   `Data Out` (ANY, DATA): The data received from the channel.
+
+---
+## Manifestation Nodes (Outputs & Displays)
+These nodes primarily visualize data on the canvas. They are resizable.
+
+### **Display Value**
+*   **Description:** Shows the input 'Value' prominently on the node. Handles various data types, displaying objects/arrays as formatted JSON.
+*   **Input Ports:**
+    *   `Value` (ANY, DATA): The value to display.
+*   **Output Ports:** None
+*   **Configuration (Modal/Inspector):** `frameWidth`, `frameHeight` for resizing.
+
+### **Display Markdown Text**
+*   **Description:** Renders the input 'Markdown String' as formatted text (supports basic bold, italic, newlines).
+*   **Input Ports:**
+    *   `Markdown String` (STRING, DATA): The Markdown text to render.
+*   **Output Ports:** None
+*   **Configuration (Modal/Inspector):** `frameWidth`, `frameHeight` for resizing.
+
+### **Progress Bar**
+*   **Description:** Visualizes a numeric 'Value' as a progress bar relative to 'Min' and 'Max' inputs.
+*   **Input Ports:**
+    *   `Value` (NUMBER, DATA): Current value.
+    *   `Min` (NUMBER, DATA): Minimum value (default from config, or 0).
+    *   `Max` (NUMBER, DATA): Maximum value (default from config, or 100).
+*   **Output Ports:** None
+*   **Configuration (Modal/Inspector):** `barColor` (string, hex), `showPercentage` (boolean), `frameWidth`, `frameHeight`.
+
+### **Data Table**
+*   **Description:** Displays an array of objects in a tabular format.
+*   **Input Ports:**
+    *   `Data` (ARRAY, DATA): Array of objects to display.
+*   **Output Ports:** None
+*   **Configuration (Modal/Inspector):** `dataTableColumns` (string array, optional for column order), `frameWidth`, `frameHeight`. If `dataTableColumns` is empty, columns are inferred from the first object.
+
+---
+
+## Sub-Graph Interface Nodes
+These nodes are used *inside* Molecular or Iterate Node sub-graphs to define their external interface.
+
+### **Input Graph Port**
+*   **Description:** (Used inside MOLECULAR sub-graphs) Represents an input port for the parent Molecular Node. Configure its 'External Port Name' and 'External Port Category' via the Node Configuration modal or Inspector Panel. This node provides the value passed *into* the parent Molecular Node to the sub-graph.
+*   **Configuration (Modal/Inspector):** `externalPortName` (string), `externalPortCategory` (LogicalCategoryEnum).
+*   **Input Ports:** None
+*   **Output Ports:**
+    *   `Value` (matches `externalPortCategory`, DATA): Output value from molecular node's external input.
+
+### **Output Graph Port**
+*   **Description:** (Used inside MOLECULAR sub-graphs) Represents an output port for the parent Molecular Node. Configure its 'External Port Name' and 'External Port Category' via the Node Configuration modal or Inspector Panel. The value connected to this node's input 'Value' will be provided as an output *by* the parent Molecular Node.
+*   **Configuration (Modal/Inspector):** `externalPortName` (string), `externalPortCategory` (LogicalCategoryEnum).
+*   **Input Ports:**
+    *   `Value` (matches `externalPortCategory`, DATA): Input value to be passed out of the molecular node.
+*   **Output Ports:** None
+
+### **Loop Item Provider**
+*   **Description:** (Used inside ITERATE sub-graphs) Provides the current 'Item' and its 'Index' from the collection being iterated by the parent ITERATE node.
+*   **Input Ports:** None
+*   **Output Ports:**
+    *   `Item` (ANY, DATA): The current item from the collection being iterated.
+    *   `Index` (NUMBER, DATA): The index of the current item in the iteration.
+
+### **Iteration Result**
+*   **Description:** (Used inside ITERATE sub-graphs) Defines the result for the current iteration. Connect the processed item's result to 'Value' and pulse 'Commit Result' (EXECUTION) to signal this iteration's output is ready for collection by the parent ITERATE node.
+*   **Input Ports:**
+    *   `Commit Result` (VOID, EXECUTION): Execution pulse to commit the iteration result.
+    *   `Value` (ANY, DATA): The result of the current iteration.
+*   **Output Ports:** None
+
+---
+
+## Molecular Nodes (Sub-Graph Containers)
+
+### **Molecular Node**
+*   **Description:** A Molecular Node encapsulates a sub-graph of other nodes, allowing for complex logic to be organized and reused. Its external DATA ports are dynamically defined by `INPUT_GRAPH` and `OUTPUT_GRAPH` nodes placed within its sub-graph. Double-click to enter and edit its sub-graph.
+*   **Input Ports (Dynamic):** Defined by `INPUT_GRAPH` nodes in its sub-graph.
+*   **Output Ports (Dynamic):** Defined by `OUTPUT_GRAPH` nodes in its sub-graph.
+*   **Note:** Component Blueprints are pre-configured Molecular Nodes.
+
+### **Iterate (Loop)**
+*   **Description:** A specialized Molecular Node that executes its sub-graph for each item in an input 'Collection'. Pulse 'Start Iteration' to begin. Inside its sub-graph, use `LOOP_ITEM` to access the current item/index and `ITERATION_RESULT` to commit the processed result for that item. 'Iteration Completed' pulses when all items are processed or max iterations reached. Max iterations can be configured.
+*   **Configuration (Modal/Inspector):** `maxIterations` (number, default for unconnected port).
+*   **Input Ports:**
+    *   `Start Iteration` (VOID, EXECUTION): Pulse to begin iterating over the collection.
+    *   `Collection` (ARRAY, DATA): The array of items to iterate over.
+    *   `Max Iterations` (NUMBER, DATA): Optional. Maximum number of iterations to perform. Overrides default.
+*   **Output Ports:**
+    *   `Iteration Completed` (VOID, EXECUTION): Pulses when all iterations are done or max iterations hit.
+    *   `Results` (ARRAY, DATA): An array containing the result from each iteration successfully committed.
+    *   `Completed Status` (BOOLEAN, DATA): True if iteration finished all items, false if max iterations hit before completion or if an error occurred.
+
+---
+*This glossary will be updated as new features and nodes are added.*

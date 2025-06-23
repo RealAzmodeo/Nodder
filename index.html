@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+<html lang="en" style="overflow-x: hidden;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logical Construction Plan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --accent-rgb: 68, 138, 255; /* Default blueish accent */
+      --primary-accent-rgb: 168, 85, 247; /* Purple for primary actions */
+      --danger-accent-rgb: 239, 68, 68; /* Red for danger/critical actions */
+      --success-accent-rgb: 34, 197, 94; /* Green for success */
+      --warning-accent-rgb: 245, 158, 11; /* Amber for warning */
+      --arcanum-accent-rgb: 245, 158, 11; /* Old Gold (amber-500) for D&D module */
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #24272E; /* Canvas color - Layer 0 */
+      color: rgba(255, 255, 255, 0.87);
+      position: relative;
+      overflow: hidden; /* Keep body overflow hidden */
+    }
+
+    /* Ambient Lighting (remains similar) */
+    body::before {
+      content: ""; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+      width: 150%; height: 60%;
+      background: radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: ""; position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 150%; height: 50%;
+      background: radial-gradient(ellipse at center bottom, rgba(var(--primary-accent-rgb), 0.015) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Canvas Texture (remains similar) */
+    .noise-texture-canvas::before {
+      content: ""; position: fixed; /* Fixed to cover viewport */
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 1;
+    }
+    #root {
+      position: relative; z-index: 2; /* Content above noise/ambient */
+      overflow-x: hidden; /* Prevent horizontal scrollbars on the root content area */
+    }
+
+    /* Custom Scrollbar (Updated for glass theme) */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(40, 40, 50, 0.3); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 100, 120, 0.5); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(130, 130, 150, 0.7); }
+
+    /* Hierarchical Glassmorphism Layers */
+    .crystal-layer { /* Base for all glass elements */
+      border: 1px solid rgba(255, 255, 255, 0.12); /* Softer, more uniform edge */
+      border-top-color: rgba(255,255,255,0.18);
+      border-left-color: rgba(255,255,255,0.15);
+      border-radius: 0.75rem; /* Default panel rounding */
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+    }
+
+    /* Layer 1: Nodes & Floating Panels */
+    .crystal-layer-1 {
+      z-index: 10;
+      background-color: rgba(55, 60, 70, 0.15); /* Neutral tint */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0px 10px 25px rgba(0,0,0,0.2); /* Default shadow for non-selected/non-error nodes */
+      border-radius: 1rem; /* Nodes are more rounded */
+    }
+     /* Default hover for non-selected/non-error nodes. This will be overridden by JS styles for selected/error states. */
+    .crystal-layer-1:hover {
+        box-shadow: 0px 12px 30px rgba(var(--accent-rgb),0.12), 0 0 0 1px rgba(var(--accent-rgb),0.2);
+    }
+    /* Specific hover for Arcanum (D&D) themed nodes */
+    .arcanum-node-theme.crystal-layer-1:hover {
+        box-shadow: 0px 12px 30px rgba(var(--arcanum-accent-rgb),0.15), 0 0 0 1px rgba(var(--arcanum-accent-rgb),0.25);
+    }
+
+
+    /* Layer 2: Side Panels (Controls, Inspector) */
+    .crystal-layer-2 {
+      z-index: 20;
+      background-color: rgba(var(--accent-rgb), 0.08); /* Subtle system accent tint */
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0px 8px 20px rgba(0,0,0,0.25);
+    }
+
+    /* Layer 3: Floating Panels (Command Agent, Debugger, Horizontal Toolbar) */
+    .crystal-layer-3 {
+      z-index: 30;
+      background-color: rgba(var(--accent-rgb), 0.1); /* Slightly more pronounced tint */
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      box-shadow: 0px 6px 15px rgba(0,0,0,0.3);
+    }
+    .crystal-layer-3-bottom { /* For command agent panel style shadow */
+       box-shadow: 0px -4px 15px rgba(0,0,0,0.25);
+    }
+
+
+    /* Layer 4: Modals, Context Menus, QuickInspect */
+    .crystal-layer-4 {
+      z-index: 40;
+      background-color: rgba(var(--accent-rgb), 0.12); /* Stronger tint for focus */
+      backdrop-filter: blur(36px);
+      -webkit-backdrop-filter: blur(36px);
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.35);
+    }
+
+    /* Text on Glass (general utility) */
+    .text-on-glass {
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .text-on-glass-dim {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+
+    /* Crystal Buttons (Glassmorphism for Toolbox) */
+    .crystal-button {
+      background-color: rgba(70, 75, 85, 0.1); /* Neutral dark glass */
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top-color: rgba(255,255,255,0.15); /* Subtle light catch */
+      color: rgba(255, 255, 255, 0.8);
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem; /* 6px */
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0px 2px 5px rgba(0,0,0,0.15), /* Soft lift shadow */
+                  inset 0 1px 0px rgba(255,255,255,0.05); /* Subtle top edge highlight */
+      position: relative;
+      overflow: hidden; /* For potential hover effects if re-added */
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .crystal-button:hover:not(:disabled) {
+      background-color: rgba(var(--accent-rgb), 0.1);
+      border-color: rgba(var(--accent-rgb), 0.5);
+      color: rgba(255, 255, 255, 0.95);
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.2), /* Enhanced lift */
+                  0 0 10px -2px rgba(var(--accent-rgb),0.25), /* Accent glow */
+                  inset 0 1px 0px rgba(255,255,255,0.07);
+    }
+    .crystal-button > * { /* Ensure content is above ::before if used */
+        position: relative;
+        z-index: 1;
+    }
+    .crystal-button:active:not(:disabled) {
+      background-color: rgba(var(--accent-rgb), 0.05); /* Slightly pressed */
+      transform: scale(0.98) translateY(1px); /* Subtle press effect */
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), /* Inset shadow */
+                  inset 0 0 0 1px rgba(var(--accent-rgb),0.2); /* Accent inner border */
+    }
+    .crystal-button:disabled, .crystal-button.disabled-look {
+      background-color: rgba(55, 60, 70, 0.2); /* Duller glass */
+      backdrop-filter: blur(4px); /* Less distinct */
+      color: rgba(255, 255, 255, 0.35);
+      border-color: rgba(255,255,255,0.07);
+      cursor: not-allowed !important;
+      box-shadow: inset 0 1px 1px rgba(0,0,0,0.1); /* Slightly recessed */
+      transform: scale(1) translateY(0);
+    }
+     .crystal-button.disabled-look::before { display: none; }
+
+
+    /* Primary Action Crystal Button (retains its specific ::before for glow) */
+    .crystal-button.primary-action {
+      border-color: rgba(var(--primary-accent-rgb), 0.4);
+      color: rgba(255,255,255,0.85);
+      background-color: rgba(var(--primary-accent-rgb), 0.1); /* More pronounced base for primary */
+    }
+    .crystal-button.primary-action::before { /* Radial hover glow for primary buttons */
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background-color: rgba(var(--primary-accent-rgb), 0.25);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out;
+      z-index: 0;
+    }
+    .crystal-button.primary-action:hover:not(:disabled) {
+      background-color: rgba(var(--primary-accent-rgb), 0.15);
+      border-color: rgba(var(--primary-accent-rgb), 0.7);
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.25), 0 0 12px -2px rgba(var(--primary-accent-rgb),0.4), inset 0 1px 0px rgba(255,255,255,0.1);
+    }
+    .crystal-button.primary-action:hover:not(:disabled)::before {
+      width: 200%; padding-bottom: 200%; opacity: 1;
+    }
+    .crystal-button.primary-action:active:not(:disabled) {
+      background-color: rgba(var(--primary-accent-rgb), 0.1);
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(var(--primary-accent-rgb),0.3);
+      transform: scale(0.97) translateY(1px);
+    }
+    .crystal-button.primary-action:disabled {
+      background-color: rgba(107, 114, 128, 0.3);
+      border-color: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.35);
+    }
+    
+    /* Turquoise Action Crystal Button (retains its specific ::before for glow) */
+    .crystal-button.turquoise-action {
+      --button-accent-rgb: 45, 212, 191; /* teal-400 */
+      border-color: rgba(var(--button-accent-rgb), 0.5);
+      color: rgba(255,255,255,0.9);
+      background-color: rgba(var(--button-accent-rgb), 0.1);
+    }
+    .crystal-button.turquoise-action::before { /* Radial hover glow */
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background-color: rgba(var(--button-accent-rgb), 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out;
+      z-index: 0;
+    }
+    .crystal-button.turquoise-action:hover:not(:disabled) {
+      background-color: rgba(var(--button-accent-rgb), 0.15);
+      border-color: rgba(var(--button-accent-rgb), 0.8);
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.2), 0 0 12px -2px rgba(var(--button-accent-rgb),0.4), inset 0 1px 0px rgba(255,255,255,0.1);
+    }
+     .crystal-button.turquoise-action:hover:not(:disabled)::before {
+      width: 200%; padding-bottom: 200%; opacity: 1;
+    }
+    .crystal-button.turquoise-action:active:not(:disabled) {
+      background-color: rgba(var(--button-accent-rgb), 0.1);
+      transform: scale(0.97) translateY(1px);
+    }
+
+    /* Active Tab Crystal Button Style */
+    .crystal-button.active-tab-style {
+      background-color: rgba(var(--accent-rgb), 0.15); /* More prominent base */
+      color: rgba(255, 255, 255, 0.95);
+      border-color: rgba(var(--accent-rgb), 0.7);
+      box-shadow: 0px 1px 3px rgba(0,0,0,0.1), /* Standard lift */
+                  inset 0 0 8px rgba(var(--accent-rgb),0.2), /* Inner accent glow */
+                  inset 0 1px 0px rgba(255,255,255,0.07); /* Top edge highlight */
+      transform: translateY(-1px); /* Slight raise for active tab */
+    }
+    .crystal-button.active-tab-style::before {
+        display: none; 
+    }
+
+
+    /* Node Button Specific Styling (in Controls Panel / Node Palette) */
+    .node-button-list-item { 
+      padding-top: 0.5rem; padding-bottom: 0.5rem; 
+      font-size: 0.875rem; 
+    }
+    .node-button-list-item svg {
+      width: 1rem; height: 1rem; 
+      margin-right: 0.5rem; 
+    }
+    .node-button-list-item.compatible-highlight-pulse:not(:disabled) {
+      animation: compatiblePulseAnimationCrystal 1.5s infinite ease-in-out;
+    }
+    @keyframes compatiblePulseAnimationCrystal {
+      0% { box-shadow: 0px 2px 5px rgba(0,0,0,0.15), inset 0 1px 0px rgba(255,255,255,0.05), 0 0 0 0px rgba(0, 191, 255, 0.0); }
+      50% { box-shadow: 0px 2px 5px rgba(0,0,0,0.15), inset 0 1px 0px rgba(255,255,255,0.05), 0 0 10px 3px rgba(0, 191, 255, 0.4); }
+      100% { box-shadow: 0px 2px 5px rgba(0,0,0,0.15), inset 0 1px 0px rgba(255,255,255,0.05), 0 0 0 0px rgba(0, 191, 255, 0.0); }
+    }
+    .node-button-list-item.filtered-out-button {
+      opacity: 0.4; 
+      pointer-events: none;
+      transition: opacity 0.3s ease-out;
+      background-color: rgba(55, 60, 70, 0.15); /* Similar to disabled, but slightly different */
+      box-shadow: inset 0 1px 1px rgba(0,0,0,0.05);
+    }
+
+    /* Connection lines (base styles remain) */
+    .connection-line { stroke-width: 2; stroke: #9E9E9E; }
+    .connecting-line { stroke-width: 2; pointer-events: none; }
+
+    /* Port specific styles (hover, light beam) should still work if their base structure is maintained */
+    .port-hoverable:hover { filter: brightness(1.3) saturate(1.2); }
+    .port-content-wrapper { position: relative; flex-grow: 1; height: 100%; display: flex; align-items: center; overflow: hidden; }
+    .port-light-beam::before {
+      content: ""; position: absolute; top: 0; bottom: 0; width: 65%; opacity: 0.20;
+      pointer-events: none; z-index: 0; border-radius: inherit;
+    }
+    .port-light-beam.input-beam::before { left: -15px; background: linear-gradient(to right, var(--port-light-beam-color, transparent) 5%, transparent 80%); }
+    .port-light-beam.output-beam::before { right: -15px; background: linear-gradient(to left, var(--port-light-beam-color, transparent) 5%, transparent 80%); }
+
+    /* Agent Panel Processing Animation (Subtle glow for the panel) */
+    @keyframes agentPanelPulseAnimationCrystal {
+      0% { box-shadow: 0px -4px 15px rgba(0,0,0,0.25), 0 0 0 0px rgba(var(--primary-accent-rgb), 0.0); }
+      50% { box-shadow: 0px -4px 15px rgba(0,0,0,0.25), 0 0 10px 3px rgba(var(--primary-accent-rgb), 0.2); }
+      100% { box-shadow: 0px -4px 15px rgba(0,0,0,0.25), 0 0 0 0px rgba(var(--primary-accent-rgb), 0.0); }
+    }
+    .agent-panel-processing.crystal-layer-3 { /* Target specific layer for animation */
+      animation: agentPanelPulseAnimationCrystal 1.5s infinite ease-in-out;
+    }
+
+    /* Node Execution Pulse & Contextual Affinity Pulse (similar to before, but ensure it works with new node base) */
+    @keyframes nodeExecutionPulseAnimation { /* Remains largely the same */
+      from { outline: 2px solid rgba(0, 220, 255, 0.7); outline-offset: 2px; box-shadow: 0px 10px 25px rgba(0,0,0,0.2), 0 0 0 2px rgba(0, 220, 255, 0.3); }
+      to { outline: 2px solid rgba(0, 220, 255, 0); outline-offset: 2px; box-shadow: 0px 10px 25px rgba(0,0,0,0.2); }
+    }
+    .node-executing-pulse-effect > .crystal-layer-1 { animation: nodeExecutionPulseAnimation 0.5s ease-out; }
+
+    @keyframes nodeContextualAffinityPulseAnimation { /* Remains largely the same */
+      0% { outline: 2px solid rgba(0, 191, 255, 0); outline-offset: 2px; }
+      50% { outline: 2px solid rgba(0, 191, 255, 0.5); outline-offset: 3px; }
+      100% { outline: 2px solid rgba(0, 191, 255, 0); outline-offset: 2px; }
+    }
+    .node-contextual-affinity-pulse > .crystal-layer-1 { animation: nodeContextualAffinityPulseAnimation 1.5s infinite ease-in-out; }
+
+    /* Connection Ambient Pulse (remains) */
+    @keyframes connectionAmbientPulseAnimation { to { stroke-dashoffset: -16; } }
+    .connection-ambient-pulse { stroke: rgba(200, 200, 220, 0.15); stroke-width: 1.5px; stroke-dasharray: 2 6; animation: connectionAmbientPulseAnimation 1.2s linear infinite; pointer-events: none; fill: none; }
+    .connection-execution-intensified-gold { stroke: #FFD700 !important; filter: drop-shadow(0 0 4px #FFEE77) drop-shadow(0 0 8px #FFD700); }
+
+    /* Toggle Switch (Glassmorphism update) */
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(74, 85, 104, 0.5); /* Mid-grey, semi-transparent */
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: .4s; border-radius: 20px;
+      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); /* Subtle blur on track */
+    }
+    .slider:before { /* Knob */
+      position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; /* Adjusted for 1px border */
+      background-color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: .4s; border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: rgba(var(--accent-rgb), 0.6); /* Accent color, semi-transparent */
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+    input:focus + .slider { box-shadow: 0 0 1px rgba(var(--accent-rgb), 0.8); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+
+
+    /* Quick Inspect Popover (Glassmorphism update - Layer 4) */
+    .quick-inspect-popover {
+      padding: 0.75rem; color: rgba(255, 255, 255, 0.9); z-index: 200;
+      width: 280px;
+      transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    }
+    .quick-inspect-popover input[type="text"],
+    .quick-inspect-popover input[type="number"],
+    .quick-inspect-popover textarea,
+    .quick-inspect-popover select {
+      background-color: rgba(30, 33, 40, 0.6); /* Darker, more translucent inputs */
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 0.375rem 0.5rem; font-size: 0.75rem; border-radius: 0.25rem;
+    }
+    .quick-inspect-popover input[type="text"]:focus,
+    .quick-inspect-popover input[type="number"]:focus,
+    .quick-inspect-popover textarea:focus,
+    .quick-inspect-popover select:focus {
+      border-color: rgba(var(--primary-accent-rgb), 0.7);
+      box-shadow: 0 0 0 1px rgba(var(--primary-accent-rgb), 0.5);
+      outline: none;
+    }
+    .quick-inspect-popover button.popover-close-button {
+        background: rgba(255,255,255,0.1); border-radius: 50%; padding: 2px;
+    }
+    .quick-inspect-popover button.popover-close-button:hover { background: rgba(255,255,255,0.2); }
+
+    /* Node Header Specific Styling */
+    .node-header {
+      background-color: rgba(255,255,255,0.03); /* Subtle differentiation for header */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-top-left-radius: inherit; /* Inherit from parent .crystal-layer-1 */
+      border-top-right-radius: inherit;
+    }
+    .comment-node-header {
+        background-color: rgba(234, 179, 8, 0.1); /* yellow-500 at 10% opacity */
+        border-bottom: 1px solid rgba(234, 179, 8, 0.2);
+    }
+    .frame-node-header {
+        background-color: rgba(107, 114, 128, 0.1); /* gray-500 at 10% opacity */
+        border-bottom: 1px solid rgba(107, 114, 128, 0.2);
+    }
+    .display-node-header {
+        background-color: rgba(255,255,255,0.04);
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .arcanum-node-header-theme {
+        background-color: rgba(var(--arcanum-accent-rgb), 0.12); /* Old Gold tint */
+        border-bottom: 1px solid rgba(var(--arcanum-accent-rgb), 0.25);
+    }
+
+    /* Floating Panel Specific Styling */
+    .floating-panel-header {
+      background-color: rgba(255,255,255,0.04); /* Slightly distinct from node headers */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      border-top-left-radius: inherit;
+      border-top-right-radius: inherit;
+      min-height: 36px; /* Consistent header height */
+    }
+    .draggable-header-for-palette { /* Used for panels without a specific header div */
+        cursor: grab;
+    }
+
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.5.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="canvas-bg-color text-[rgba(255,255,255,0.87)] noise-texture-canvas">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
