@@ -4,35 +4,35 @@ import {
   AnyNode, Connection, OperationTypeEnum, ConnectingState, NodeId, ExecutionMetaState, ExecutionContext,
   AtomicNode, MolecularNode, InputPort, OutputPort, LogicalCategoryEnum, ExecutionResult, NodeConfig, Port, PortTypeEnum, ScopeStackItem, NodeResizeEndHandler, NodeContextMenuState, TerminalStateReasonEnum, AgentPlan, Breakpoints, SteppingMode, AutocompleteItem, QuickInspectField, NodeCreationContextMenuState, QuickInspectData,
   FloatingPanelData 
-} from './types';
-import { generateNodeId as globalGenerateNodeId, generateConnectionId as globalGenerateConnectionId, generatePortId as globalGeneratePortId } from './services/nodeFactory';
-import { canConnect } from './services/validationService';
-import NodeEditor, { NodeEditorContextMenuDetails, NodeEditorRef } from './components/NodeEditor';
-import ControlsPanel from './components/ControlsPanel';
-import InspectorPanel from './components/InspectorPanel';
-import LogView from './components/LogView';
-import NodeConfigModal from './components/NodeConfigModal';
-import ClearGraphConfirmationModal from './components/ClearGraphConfirmationModal';
-import Breadcrumbs from './components/Breadcrumbs';
-import DebugControls from './components/DebugControls';
-import * as Icons from './components/Icons';
-import NodeContextMenu from './components/NodeContextMenu';
-import NodeCreationContextMenu from './components/NodeCreationContextMenu';
-import CommandAgentPanel from './components/CommandAgentPanel';
-import { useGraphState } from './hooks/useGraphState';
-import { useHistorySelectionState, GraphStateForHistory, HistorySelectionStateCallbacks } from './hooks/useHistorySelectionState';
-import { useExecutionState } from './hooks/useExecutionState';
-import { useClipboardState, PasteCallbacks } from './hooks/useClipboardState';
-import { useQuickShelf } from './hooks/useQuickShelf';
-import QuickInspectPopover from './components/QuickInspectPopover';
-import { moduleLoaderService } from './services/ModuleLoaderService';
-import { nodeRegistryService } from './services/NodeRegistryService';
-import { componentRegistryService } from './services/ComponentRegistryService';
-import { useAgentState } from './hooks/useAgentState';
-import { useModalManager } from './hooks/useModalManager';
-import { useQuickInspect, UseQuickInspectReturn } from './hooks/useQuickInspect';
-import { useGraphInteractions } from './hooks/useGraphInteractions';
-import { getAgentServiceStatus } from './services/agentService';
+} from '../types';
+import { generateNodeId as globalGenerateNodeId, generateConnectionId as globalGenerateConnectionId, generatePortId as globalGeneratePortId } from '../services/nodeFactory';
+import { canConnect } from '../services/validationService';
+import NodeEditor, { NodeEditorContextMenuDetails, NodeEditorRef } from './NodeEditor';
+import ControlsPanel from './ControlsPanel';
+import InspectorPanel from './InspectorPanel';
+import LogView from './LogView';
+import NodeConfigModal from './NodeConfigModal';
+import ClearGraphConfirmationModal from './ClearGraphConfirmationModal';
+import Breadcrumbs from './Breadcrumbs';
+import DebugControls from './DebugControls';
+import * as Icons from './Icons';
+import NodeContextMenu from './NodeContextMenu';
+import NodeCreationContextMenu from './NodeCreationContextMenu';
+import CommandAgentPanel from './CommandAgentPanel';
+import { useGraphState } from '../hooks/useGraphState';
+import { useHistorySelectionState, GraphStateForHistory, HistorySelectionStateCallbacks } from '../hooks/useHistorySelectionState';
+import { useExecutionState } from '../hooks/useExecutionState';
+import { useClipboardState, PasteCallbacks } from '../hooks/useClipboardState';
+import { useQuickShelf } from '../hooks/useQuickShelf';
+import QuickInspectPopover from './QuickInspectPopover'; // Corrected path
+import { moduleLoaderService } from '../services/ModuleLoaderService';
+import { nodeRegistryService } from '../services/NodeRegistryService';
+import { componentRegistryService } from '../services/ComponentRegistryService';
+import { useAgentState } from '../hooks/useAgentState';
+import { useModalManager } from '../hooks/useModalManager';
+import { useQuickInspect, UseQuickInspectReturn } from '../hooks/useQuickInspect';
+import { useGraphInteractions } from '../hooks/useGraphInteractions';
+import { getAgentServiceStatus } from '../services/agentService';
 
 
 const CHANNEL_PREFIX = "__channel_";
