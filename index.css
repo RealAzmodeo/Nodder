@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* También se podrían añadir aquí estilos globales personalizados adicionales si fueran necesarios,
+   pero por ahora, las directivas de Tailwind son suficientes.
+   Los estilos que estaban en el <style> de index.html ya usan clases de Tailwind
+   o son variables CSS, por lo que Tailwind no interferirá con ellos directamente,
+   pero se beneficiarán del preprocesamiento de Tailwind si se convierten a directivas @apply o plugins.
+   Por ahora, los mantendré como están en index.html ya que son bastante extensos. */

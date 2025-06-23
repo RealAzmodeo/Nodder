@@ -14,6 +14,7 @@ interface ControlsPanelProps {
   quickShelfItems: QuickShelfItem[];
   addQuickShelfItem: (item: Omit<QuickShelfItem, 'id'> & {id?: string}) => void;
   removeQuickShelfItem: (itemId: string) => void;
+  onInfoLog: (message: string) => void;
   // Focus mode props are no longer needed here as node buttons moved
   // isFocusModeActive: boolean;
   // selectedNodeOutputsForAffinity: OutputPort[];
@@ -30,6 +31,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     quickShelfItems,
     addQuickShelfItem,
     removeQuickShelfItem,
+    onInfoLog,
     // isFocusModeActive, // Removed
     // selectedNodeOutputsForAffinity, // Removed
     // allNodes, // Removed
@@ -61,7 +63,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     // This handler remains for potential future use if drag-and-drop is re-enabled from another source
     // or if items could be dragged *within* the shelf.
     // For now, adding to shelf from NodePalette would likely be via a context menu or button on palette items.
-    console.warn("Drag-and-drop to Quick Shelf from floating palette not yet implemented.");
+    onInfoLog("Drag-and-drop to Quick Shelf from floating palette is not yet fully implemented for direct add.");
   };
 
   const handleDragOverShelf = (event: React.DragEvent<HTMLDivElement>) => {

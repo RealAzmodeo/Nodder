@@ -7,18 +7,18 @@ import {
 } from './types';
 import { generateNodeId as globalGenerateNodeId, generateConnectionId as globalGenerateConnectionId, generatePortId as globalGeneratePortId } from './services/nodeFactory';
 import { canConnect } from './services/validationService';
-import NodeEditor, { NodeEditorContextMenuDetails, NodeEditorRef } from './NodeEditor';
-import ControlsPanel from './ControlsPanel';
-import InspectorPanel from './InspectorPanel';
-import LogView from './LogView';
-import NodeConfigModal from './NodeConfigModal';
-import ClearGraphConfirmationModal from './ClearGraphConfirmationModal';
-import Breadcrumbs from './Breadcrumbs';
-import DebugControls from './DebugControls';
-import * as Icons from './Icons';
-import NodeContextMenu from './NodeContextMenu';
-import NodeCreationContextMenu from './NodeCreationContextMenu';
-import CommandAgentPanel from './CommandAgentPanel';
+import NodeEditor, { NodeEditorContextMenuDetails, NodeEditorRef } from './components/NodeEditor';
+import ControlsPanel from './components/ControlsPanel';
+import InspectorPanel from './components/InspectorPanel';
+import LogView from './components/LogView';
+import NodeConfigModal from './components/NodeConfigModal';
+import ClearGraphConfirmationModal from './components/ClearGraphConfirmationModal';
+import Breadcrumbs from './components/Breadcrumbs';
+import DebugControls from './components/DebugControls';
+import * as Icons from './components/Icons';
+import NodeContextMenu from './components/NodeContextMenu';
+import NodeCreationContextMenu from './components/NodeCreationContextMenu';
+import CommandAgentPanel from './components/CommandAgentPanel';
 import { useGraphState } from './hooks/useGraphState';
 import { useHistorySelectionState, GraphStateForHistory, HistorySelectionStateCallbacks } from './hooks/useHistorySelectionState';
 import { useExecutionState } from './hooks/useExecutionState';
@@ -32,6 +32,7 @@ import { useAgentState } from './hooks/useAgentState';
 import { useModalManager } from './hooks/useModalManager';
 import { useQuickInspect, UseQuickInspectReturn } from './hooks/useQuickInspect';
 import { useGraphInteractions } from './hooks/useGraphInteractions';
+import { getAgentServiceStatus } from './services/agentService';
 
 
 const CHANNEL_PREFIX = "__channel_";
@@ -46,7 +47,8 @@ export const App: React.FC = () => {
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
 
   const [floatingPanels, setFloatingPanels] = useState<FloatingPanelData[]>([
-    { id: 'fp_node_palette', position: { x: 50, y: 180 }, width: 320, height: 700 }
+    { id: 'fp_node_palette', position: { x: 50, y: 180 }, width: 320, height: 700 },
+    { id: 'fp_horizontal_tools_panel', position: { x: 320, y: 60 }, width: 900, height: 60 }
   ]);
 
 
@@ -75,7 +77,7 @@ export const App: React.FC = () => {
     clipboard, canPaste, copyToClipboard, pasteFromClipboard,
   } = useClipboardState();
 
-  const { quickShelfItems, addQuickShelfItem, removeQuickShelfItem } = useQuickShelf();
+  const { quickShelfItems, addQuickShelfItem, removeQuickShelfItem } = useQuickShelf({ appendLog: appendExecutionLog });
 
   const {
     isConfigModalOpen, configuringNode, isClearGraphModalOpen, graphNameToClear,
@@ -96,6 +98,8 @@ export const App: React.FC = () => {
   const globalStateStoreRef = useRef(new Map<string, any>());
   const nodeEditorRef = useRef<NodeEditorRef>(null);
   const commandBarInputRef = useRef<HTMLInputElement>(null);
+  const loadGraphInputRef = useRef<HTMLInputElement | null>(null);
+
 
   const [eventNameInput, setEventNameInput] = useState<string>('myEvent');
   const [eventPayloadInput, setEventPayloadInput] = useState<string>('{"data": "test"}');
@@ -237,8 +241,19 @@ export const App: React.FC = () => {
     if (modulesInitialized) {
         initializeHistory(getCurrentGraphStateForHistory());
         initializeGlobalStateFromNodes(nodes, true);
+
+        // Check Agent Service Status once modules are initialized and appendLog is available
+        if (appendExecutionLog) {
+            const agentStatus = getAgentServiceStatus();
+            if (!agentStatus.isOperational) {
+                appendExecutionLog(`Agent Service Warning: ${agentStatus.message}`, 'warning');
+            } else {
+                // Optionally log success, or do nothing if it's expected to be operational
+                // appendExecutionLog(agentStatus.message, 'info');
+            }
+        }
     }
-  }, [modulesInitialized, initializeHistory, getCurrentGraphStateForHistory, nodes]); 
+  }, [modulesInitialized, initializeHistory, getCurrentGraphStateForHistory, nodes, appendExecutionLog]);
 
 
   const initializeGlobalStateFromNodes = useCallback((nodesToScan: AnyNode[], clearExisting: boolean) => {
@@ -417,7 +432,7 @@ export const App: React.FC = () => {
     appendExecutionLog('Graph saved.', 'success');
   };
 
-  const handleLoadGraph = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLoadGraphFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -446,8 +461,10 @@ export const App: React.FC = () => {
             if (graphData.floatingPanels && Array.isArray(graphData.floatingPanels)) { 
               setFloatingPanels(graphData.floatingPanels);
             } else {
-              // Initialize with default palette panel if not found in loaded graph.
-              setFloatingPanels([{ id: 'fp_node_palette', position: { x: 50, y: 180 }, width: 320, height: 700 }]);
+              setFloatingPanels([
+                { id: 'fp_node_palette', position: { x: 50, y: 180 }, width: 320, height: 700 },
+                { id: 'fp_horizontal_tools_panel', position: { x: 320, y: 60 }, width: 900, height: 60 }
+              ]);
             }
             clearExecutionState();
             appendExecutionLog('Graph loaded.', 'success');
@@ -458,11 +475,16 @@ export const App: React.FC = () => {
         } catch (error: any) {
           appendExecutionLog(`Error loading graph: ${error.message}`, 'error');
         }
-        event.target.value = '';
+        if (event.target) event.target.value = ''; // Reset file input
       };
       reader.readAsText(file);
     }
   };
+
+  const handleLoadGraphRequest = () => {
+    loadGraphInputRef.current?.click();
+  };
+
 
   const handleNodeSelectWrapper = useCallback((nodeIdOrIds: NodeId | NodeId[] | null, isCtrlOrMetaPressed: boolean = false) => {
     let newSelectedIds: NodeId[];
@@ -814,6 +836,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-[#24272E] text-[rgba(255,255,255,0.87)] font-sans">
+      <input
+        type="file"
+        ref={loadGraphInputRef}
+        accept=".json"
+        onChange={handleLoadGraphFileChange}
+        className="hidden"
+        aria-hidden="true"
+      />
       {/* Left Controls Panel */}
       <div className={`crystal-layer crystal-layer-2 flex flex-col ${isLeftPanelCollapsed ? COLLAPSED_WIDTH_CLASS : EXPANDED_WIDTH_LEFT_CLASS} transition-all duration-300 ease-in-out`}>
         {isLeftPanelCollapsed ? (
@@ -837,47 +867,11 @@ export const App: React.FC = () => {
                 quickShelfItems={quickShelfItems}
                 addQuickShelfItem={addQuickShelfItem}
                 removeQuickShelfItem={removeQuickShelfItem}
+                onInfoLog={(message) => appendExecutionLog(message, 'info')}
               />
             </div>
              <div className="p-3 border-t border-[rgba(255,255,255,0.08)] space-y-2 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-on-glass-dim mb-1.5 tracking-wider uppercase">History</h3>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={handleUndoWrapper}
-                        disabled={!canUndo}
-                        className={`crystal-button flex-1 flex items-center justify-center px-3 py-1.5 text-sm ${!canUndo ? 'disabled-look' : ''}`}
-                        title="Undo (Ctrl/Cmd+Z)"
-                    >
-                        <Icons.ArrowUturnLeftIcon className="w-4 h-4 mr-1.5" /> Undo
-                    </button>
-                    <button
-                        onClick={handleRedoWrapper}
-                        disabled={!canRedo}
-                        className={`crystal-button flex-1 flex items-center justify-center px-3 py-1.5 text-sm ${!canRedo ? 'disabled-look' : ''}`}
-                        title="Redo (Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z)"
-                    >
-                        <Icons.ArrowUturnRightIcon className="w-4 h-4 mr-1.5" /> Redo
-                    </button>
-                </div>
-                <h3 className="text-xs font-semibold text-on-glass-dim mb-1.5 pt-2 tracking-wider uppercase">Clipboard</h3>
-                <div className="flex space-x-2">
-                    <button
-                        onClick={handleCopyToClipboardWrapper}
-                        disabled={selectedNodeIds.length === 0}
-                        className={`crystal-button flex-1 flex items-center justify-center px-3 py-1.5 text-sm ${selectedNodeIds.length === 0 ? 'disabled-look' : ''}`}
-                        title="Copy Selected Nodes (Ctrl/Cmd+C)"
-                    >
-                        <Icons.DocumentDuplicateIcon className="w-4 h-4 mr-1.5" /> Copy
-                    </button>
-                    <button
-                        onClick={handlePasteFromClipboardWrapper}
-                        disabled={!canPaste}
-                        className={`crystal-button flex-1 flex items-center justify-center px-3 py-1.5 text-sm ${!canPaste ? 'disabled-look' : ''}`}
-                        title="Paste Nodes (Ctrl/Cmd+V)"
-                    >
-                    <Icons.ClipboardDocumentIcon className="w-4 h-4 mr-1.5" /> Paste
-                    </button>
-                </div>
+                {/* History and Clipboard sections removed - their functionalities moved to HorizontalToolbarComponent */}
             </div>
             <div className="flex-shrink-0">
                 <DebugControls
@@ -936,13 +930,13 @@ export const App: React.FC = () => {
                 connections={currentConnections}
                 floatingPanels={floatingPanels}
                 onFloatingPanelDrag={handleFloatingPanelDrag}
-                onAddNode={handleAddNodeWrapper} // Prop for NodePalette
-                onAddBlueprintNode={handleAddBlueprintWrapper} // Prop for NodePalette
-                currentGraphId={currentGraphId} // Prop for NodePalette
-                parentNodeOperationType={currentParentNodeType} // Prop for NodePalette
-                isFocusModeActive={isFocusModeActive} // Prop for NodePalette
-                selectedNodeOutputsForAffinity={selectedNodeOutputsForAffinity} // Prop for NodePalette
-                allNodesForConnectionContext={currentNodes} // Prop for NodePalette
+                onAddNode={handleAddNodeWrapper}
+                onAddBlueprintNode={handleAddBlueprintWrapper}
+                currentGraphId={currentGraphId}
+                parentNodeOperationType={currentParentNodeType}
+                isFocusModeActive={isFocusModeActive}
+                selectedNodeOutputsForAffinity={selectedNodeOutputsForAffinity}
+                allNodesForConnectionContext={currentNodes}
                 onNodesChange={updateNodesInCurrentScope}
                 onConnectionsChange={(newConns) => updateConnectionsInCurrentScope(newConns)}
                 connectingState={connectingState}
@@ -975,6 +969,24 @@ export const App: React.FC = () => {
                 resetQuickInspectTimer={resetQuickInspectTimer}
                 clearQuickInspectTimer={clearQuickInspectTimer}
                 openQuickInspectImmediately={openQuickInspectImmediately}
+                // Props for HorizontalToolbarComponent (passed through FloatingPanel)
+                onSaveGraph={handleSaveGraph}
+                onLoadGraphRequest={handleLoadGraphRequest}
+                onUndo={handleUndoWrapper}
+                canUndo={canUndo}
+                onRedo={handleRedoWrapper}
+                canRedo={canRedo}
+                onCopy={handleCopyToClipboardWrapper}
+                canCopy={selectedNodeIds.length > 0}
+                onPaste={handlePasteFromClipboardWrapper}
+                canPaste={canPaste}
+                onAlignTop={handleAlignSelectedTop}
+                onDistributeHorizontally={handleDistributeSelectedHorizontally}
+                selectedNodeIdsCount={selectedNodeIds.length}
+                scopeStack={scopeStack}
+                onNavigateToScope={handleActualNavigateToScope}
+                onFocusGraph={handleFocusOnGraph}
+                onClearGraph={handleClearGraphModalOpenWrapper}
               />
             </div>
         </div>
@@ -1029,14 +1041,7 @@ export const App: React.FC = () => {
                                     <Icons.PlayIcon className="w-4 h-4 mr-2" />
                                     Execute Selected Output
                                 </button>
-                                <button
-                                    onClick={handleClearGraphModalOpenWrapper}
-                                    className="crystal-button w-full flex items-center justify-center px-3 py-2 text-sm"
-                                    title={currentGraphId === 'root' ? "Clear the entire root graph." : "Clear the current sub-graph."}
-                                >
-                                    <Icons.TrashIcon className="w-4 h-4 mr-2" />
-                                    Clear Graph
-                                </button>
+                                {/* "Clear Graph" button removed from here, moved to HorizontalToolbarComponent */}
                                 <button
                                     onClick={handleFocusOnGraph}
                                     className="crystal-button w-full flex items-center justify-center px-3 py-2 text-sm"
@@ -1097,7 +1102,7 @@ export const App: React.FC = () => {
                                     <Icons.CloudArrowUpIcon className="w-4 h-4 mr-2" />
                                     Load Graph
                                 </label>
-                                <input type="file" id="load-graph-input" accept=".json" onChange={handleLoadGraph} className="hidden" />
+                                <input type="file" id="load-graph-input" ref={loadGraphInputRef} accept=".json" onChange={handleLoadGraphFileChange} className="hidden" />
                                 </div>
                             </div>
                              <div className="p-4 text-on-glass-dim italic text-center mt-5">
