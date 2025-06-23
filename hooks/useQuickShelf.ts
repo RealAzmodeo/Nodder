@@ -19,8 +19,12 @@ const getIconForBlueprint = (blueprintNameOrId: string): React.FC<React.SVGProps
     return blueprint?.icon || Icons.CubeTransparentIcon; // Fallback icon for blueprints
 };
 
+interface UseQuickShelfOptions {
+  appendLog?: (message: string, type: 'info' | 'warning' | 'error' | 'success', details?: string) => void;
+}
 
-export const useQuickShelf = () => {
+export const useQuickShelf = (options?: UseQuickShelfOptions) => {
+  const appendLog = options?.appendLog;
   const [quickShelfItems, setQuickShelfItems] = useState<QuickShelfItem[]>([]);
 
   useEffect(() => {
@@ -40,10 +44,14 @@ export const useQuickShelf = () => {
         setQuickShelfItems(rehydratedItems);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Failed to load quick shelf items from localStorage:", error);
+      if (appendLog) {
+        appendLog(`Error loading quick shelf items: ${errorMessage}`, 'error');
+      }
       setQuickShelfItems([]);
     }
-  }, []);
+  }, [appendLog]);
 
   const saveToLocalStorage = useCallback((items: QuickShelfItem[]) => {
     try {
@@ -51,9 +59,13 @@ export const useQuickShelf = () => {
       const itemsToStore = items.map(({ icon, ...rest }) => rest);
       localStorage.setItem(QUICK_SHELF_STORAGE_KEY, JSON.stringify(itemsToStore));
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Failed to save quick shelf items to localStorage:", error);
+      if (appendLog) {
+        appendLog(`Error saving quick shelf items: ${errorMessage}`, 'error');
+      }
     }
-  }, []);
+  }, [appendLog]);
 
   const addQuickShelfItem = useCallback((itemToAdd: Omit<QuickShelfItem, 'id'> & { id?: string }) => {
     setQuickShelfItems(prevItems => {

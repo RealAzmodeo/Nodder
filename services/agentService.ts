@@ -1,14 +1,41 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, GenerateContentRequest } from "@google/genai";
 import { AgentPlan, OperationTypeEnum, NodeConfig } from '../types';
 
-// Ensure API_KEY is available in the environment
-const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
-  console.error("API_KEY for Gemini is not set in environment variables.");
-  // Potentially throw an error or handle this more gracefully depending on application requirements
+let ai: GoogleGenAI | null = null;
+let isAgentServiceOperational = false;
+let agentServiceInitializationMessage = "Agent service has not been initialized.";
+
+// Vite replaces process.env.XXX with the actual value at build time.
+// Prioritize GEMINI_API_KEY if both are somehow set.
+const apiKeyFromEnv = process.env.GEMINI_API_KEY || process.env.API_KEY;
+
+
+if (apiKeyFromEnv) {
+  try {
+    ai = new GoogleGenAI({ apiKey: apiKeyFromEnv });
+    isAgentServiceOperational = true;
+    agentServiceInitializationMessage = "Agent service initialized successfully.";
+    console.log("GoogleGenAI initialized successfully with API Key.");
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI with API_KEY:", error);
+    isAgentServiceOperational = false;
+    if (error instanceof Error) {
+      agentServiceInitializationMessage = `Failed to initialize agent service: ${error.message}`;
+    } else {
+      agentServiceInitializationMessage = "Failed to initialize agent service due to an unknown error.";
+    }
+  }
+} else {
+  const warningMessage = "API_KEY for Gemini is not set in environment variables. Agent Service will be non-operational. Please set GEMINI_API_KEY in your .env file.";
+  console.warn(warningMessage);
+  isAgentServiceOperational = false;
+  agentServiceInitializationMessage = warningMessage;
 }
-const ai = new GoogleGenAI({ apiKey: API_KEY! }); // Use non-null assertion if confident it's set or handled
+
+export function getAgentServiceStatus(): { isOperational: boolean; message: string } {
+  return { isOperational: isAgentServiceOperational, message: agentServiceInitializationMessage };
+}
 
 function buildPrompt(userCommand: string, availableOperations: string[]): string {
   const today = new Date().toLocaleDateString();
@@ -116,24 +143,58 @@ export async function processUserCommandViaAgent(
   userCommand: string,
   availableOperations: OperationTypeEnum[]
 ): Promise<AgentPlan | null> {
-  if (!API_KEY) {
-    console.error("Gemini API Key is not configured. Agent cannot process commands.");
-    throw new Error("API Key not configured for Agent.");
+  const status = getAgentServiceStatus();
+  if (!status.isOperational || !ai) {
+    console.error("Agent service is not operational. Cannot process commands.", status.message);
+    // No relanzar el error aquí directamente, permitir que el llamador decida cómo manejarlo.
+    // El llamador (useAgentState) ya tiene lógica para appendLog.
+    // Simplemente devolvemos null o una promesa rechazada si es necesario.
+    // Por consistencia con el tipo de retorno, lanzaremos un error que puede ser capturado.
+    throw new Error(`Agent Service Error: ${status.message}`);
   }
 
   const prompt = buildPrompt(userCommand, availableOperations);
 
   try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-04-17",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            temperature: 0.05, // Further lowered temperature for stricter JSON adherence
-        }
-    });
+    // ai is checked for nullity above by `status.isOperational` which implies `ai` is initialized.
+    const generateContentParams: GenerateContentRequest = {
+        model: "gemini-2.5-flash-preview-04-17", // Usando el modelo más reciente de la documentación
+        contents: [{ role: "user", parts: [{ text: prompt }] }], // Estructura de Contents actualizada
+        generationConfig: { // generationConfig para temperature
+            responseMimeType: "application/json", // responseMimeType ahora va aquí
+            temperature: 0.05,
+        },
+        // safetySettings: [...] // Opcional: añadir configuraciones de seguridad si es necesario
+    };
 
-    let jsonStr = response.text.trim();
+    const response: GenerateContentResponse = await ai.models.generateContent(generateContentParams);
+
+    // Gemini API (v1beta y posteriores) devuelve el JSON directamente en response.candidates[0].content.parts[0].text
+    // cuando responseMimeType es "application/json".
+    // No es necesario `response.text.trim()` ni quitar las vallas de markdown.
+    // Referencia: https://ai.google.dev/docs/gemini_api_overview#json
+
+    let jsonStr: string | undefined;
+    if (response.candidates && response.candidates.length > 0 &&
+        response.candidates[0].content && response.candidates[0].content.parts &&
+        response.candidates[0].content.parts.length > 0 &&
+        typeof response.candidates[0].content.parts[0].text === 'string') {
+      jsonStr = response.candidates[0].content.parts[0].text;
+    } else {
+      console.error("Unexpected response structure from Gemini:", response);
+      // Tratar de obtener texto de la manera antigua como fallback, aunque no debería ser necesario
+      if (typeof (response as any).text === 'string') {
+        jsonStr = (response as any).text.trim();
+         // Eliminar vallas de markdown si están presentes (fallback)
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+          jsonStr = match[2].trim();
+        }
+      } else {
+        throw new Error("Agent returned no parsable content and response structure is unexpected.");
+      }
+    }
     
     // Remove markdown fences if present
     const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
